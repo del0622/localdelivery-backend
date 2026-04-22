@@ -33,7 +33,6 @@
   html { background: var(--bg); color: var(--text); font-family: var(--font-body); font-size: 14px; }
   body { min-height: 100vh; display: grid; grid-template-columns: 220px 1fr; grid-template-rows: auto 1fr; }
 
-  /* ─── Topbar ─────────────────────────── */
   .topbar {
     grid-column: 1 / -1;
     display: flex; align-items: center; justify-content: space-between;
@@ -56,7 +55,6 @@
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
   .topbar-time { font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
 
-  /* ─── Sidebar ─────────────────────────── */
   .sidebar {
     background: var(--surface);
     border-right: 1px solid var(--border);
@@ -81,9 +79,7 @@
     padding: 1px 6px; border-radius: 20px; font-family: var(--font-mono);
   }
 
-  /* ─── Main ────────────────────────────── */
   .main { padding: 32px 28px; display: flex; flex-direction: column; gap: 28px; overflow-y: auto; }
-
   .page-header { display: flex; align-items: flex-start; justify-content: space-between; }
   .page-title { font-family: var(--font-serif); font-size: 26px; letter-spacing: -0.5px; }
   .page-sub { font-size: 13px; color: var(--muted); margin-top: 4px; }
@@ -95,7 +91,6 @@
   }
   .refresh-btn:hover { border-color: var(--accent); color: var(--accent); }
 
-  /* ─── Stats grid ──────────────────────── */
   .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
   .stat-card {
     background: var(--surface); border: 1px solid var(--border);
@@ -119,10 +114,8 @@
   .icon-green  { background: rgba(62,207,142,0.15); }
   .icon-blue   { background: rgba(79,142,247,0.15); }
 
-  /* ─── Two-col layout ──────────────────── */
   .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 
-  /* ─── Panel ───────────────────────────── */
   .panel {
     background: var(--surface); border: 1px solid var(--border);
     border-radius: var(--r-lg); overflow: hidden;
@@ -138,7 +131,6 @@
     border-radius: 20px; border: 1px solid var(--border2); color: var(--muted);
   }
 
-  /* ─── Table ───────────────────────────── */
   .data-table { width: 100%; border-collapse: collapse; }
   .data-table thead tr { border-bottom: 1px solid var(--border); }
   .data-table th {
@@ -162,7 +154,6 @@
   .avail-yes { color: var(--green); font-family: var(--font-mono); font-size: 12px; }
   .avail-no  { color: var(--accent2); font-family: var(--font-mono); font-size: 12px; }
 
-  /* ─── Add to Cart Button ──────────────── */
   .btn-cart {
     display: inline-flex; align-items: center; gap: 5px;
     background: rgba(245,166,35,0.13); color: var(--accent);
@@ -175,7 +166,6 @@
   .btn-cart:disabled { opacity: 0.4; cursor: not-allowed; }
   .btn-cart.added { background: rgba(62,207,142,0.15); color: var(--green); border-color: rgba(62,207,142,0.3); }
 
-  /* ─── Toast ───────────────────────────── */
   #toast {
     position: fixed; bottom: 28px; right: 28px;
     background: var(--surface2); border: 1px solid var(--border2);
@@ -188,7 +178,6 @@
   }
   #toast.show { opacity: 1; transform: translateY(0); }
 
-  /* ─── Activity feed ───────────────────── */
   .activity-list { display: flex; flex-direction: column; }
   .activity-item {
     display: flex; align-items: flex-start; gap: 12px;
@@ -206,7 +195,6 @@
   .ac-amber { background: var(--accent); }
   .ac-red   { background: var(--accent2); }
 
-  /* ─── DB health ───────────────────────── */
   .health-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--border); }
   .health-cell { background: var(--surface); padding: 16px 20px; }
   .health-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
@@ -217,7 +205,6 @@
   .fill-blue  { background: var(--blue); }
   .fill-amber { background: var(--accent); }
 
-  /* ─── Endpoint list ───────────────────── */
   .endpoint-list { display: flex; flex-direction: column; }
   .endpoint-item {
     display: flex; align-items: center; gap: 12px;
@@ -237,7 +224,6 @@
   .endpoint-status { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--green); font-family: var(--font-mono); }
   .endpoint-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); }
 
-  /* ─── Scroll ──────────────────────────── */
   ::-webkit-scrollbar { width: 5px; }
   ::-webkit-scrollbar-track { background: var(--bg); }
   ::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 3px; }
@@ -245,10 +231,8 @@
 </head>
 <body>
 
-<!-- Toast -->
 <div id="toast"></div>
 
-<!-- Topbar -->
 <header class="topbar">
   <div class="topbar-brand">
     <div class="brand-icon">🍱</div>
@@ -266,7 +250,6 @@
   </div>
 </header>
 
-<!-- Sidebar -->
 <nav class="sidebar">
   <div class="nav-section">Overview</div>
   <button class="nav-item active" data-page="dashboard">
@@ -282,15 +265,14 @@
   </button>
   <div style="margin-top:auto;padding:16px 20px;border-top:1px solid var(--border);margin-top:16px">
     <div style="font-size:11px;color:var(--muted)">Connected to</div>
-    <div style="font-size:12px;font-family:var(--font-mono);margin-top:2px;color:var(--green)">localdelivery_db</div>
-    <div style="font-size:11px;color:var(--muted);margin-top:4px">root@localhost</div>
+    <div style="font-size:12px;font-family:var(--font-mono);margin-top:2px;color:var(--green)">railway</div>
+    <div style="font-size:11px;color:var(--muted);margin-top:4px">root@railway</div>
   </div>
 </nav>
 
-<!-- Main content -->
 <main class="main">
 
-  <!-- ── DASHBOARD PAGE ── -->
+  <!-- DASHBOARD PAGE -->
   <div class="page active" id="page-dashboard">
     <div class="page-header">
       <div>
@@ -298,9 +280,9 @@
         <div class="page-sub">Real-time status ng iyong FoodDelivery backend</div>
       </div>
       <div style="display:flex;gap:8px">
-      <button class="refresh-btn" onclick="refreshData()">↺ I-refresh</button>
-      <button class="refresh-btn" id="fix-img-btn" onclick="fixAllImages()" style="border-color:var(--blue);color:var(--blue)">🖼 Fix Images</button>
-    </div>
+        <button class="refresh-btn" onclick="refreshData()">↺ I-refresh</button>
+        <button class="refresh-btn" id="fix-img-btn" onclick="fixAllImages()" style="border-color:var(--blue);color:var(--blue)">🖼 Fix Images</button>
+      </div>
     </div>
 
     <div class="stats-grid">
@@ -330,12 +312,11 @@
       </div>
     </div>
 
-    <!-- Endpoints + Activity -->
     <div class="two-col">
       <div class="panel">
         <div class="panel-header">
           <div class="panel-title">API Endpoints</div>
-          <span class="panel-badge">localhost:3000</span>
+          <span class="panel-badge">Railway API</span>
         </div>
         <div class="endpoint-list">
           <div class="endpoint-item">
@@ -387,7 +368,7 @@
           <div class="activity-item">
             <div class="activity-line"><div class="activity-circle ac-blue"></div></div>
             <div class="activity-content">
-              <div class="activity-msg">Server started on port <code>3000</code></div>
+              <div class="activity-msg">Server started on Railway Cloud</div>
               <div class="activity-time">on startup</div>
             </div>
           </div>
@@ -408,7 +389,7 @@
           <div class="activity-item">
             <div class="activity-line"><div class="activity-circle ac-blue"></div></div>
             <div class="activity-content">
-              <div class="activity-msg">Connected to <code>localdelivery_db</code> via MySQL pool</div>
+              <div class="activity-msg">Connected to <code>railway</code> via MySQL pool</div>
               <div class="activity-time">on startup</div>
             </div>
           </div>
@@ -416,7 +397,6 @@
       </div>
     </div>
 
-    <!-- Products table preview -->
     <div class="panel" style="animation-delay:0.3s">
       <div class="panel-header">
         <div class="panel-title">Products — <span style="color:var(--muted);font-weight:400">GET /products</span></div>
@@ -425,9 +405,7 @@
       <div style="overflow-x:auto">
         <table class="data-table">
           <thead>
-            <tr>
-              <th>ID</th><th>Name</th><th>Category</th><th>Price</th><th>Stock</th><th>Available</th>
-            </tr>
+            <tr><th>ID</th><th>Name</th><th>Category</th><th>Price</th><th>Stock</th><th>Available</th></tr>
           </thead>
           <tbody id="products-tbody">
             <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">Fetching from API...</td></tr>
@@ -436,11 +414,10 @@
       </div>
     </div>
 
-    <!-- DB Health -->
     <div class="panel" style="animation-delay:0.35s">
       <div class="panel-header">
         <div class="panel-title">Database Health</div>
-        <span class="panel-badge">MySQL · XAMPP</span>
+        <span class="panel-badge">MySQL · Railway</span>
       </div>
       <div class="health-grid">
         <div class="health-cell">
@@ -455,7 +432,7 @@
         </div>
         <div class="health-cell">
           <div class="health-label">Database</div>
-          <div class="health-val" style="font-size:13px;color:var(--accent)">localdelivery_db</div>
+          <div class="health-val" style="font-size:13px;color:var(--accent)">railway</div>
           <div class="health-bar"><div class="health-fill fill-amber" style="width:60%"></div></div>
         </div>
         <div class="health-cell">
@@ -480,11 +457,11 @@
     </div>
 
     <div style="text-align:center;padding:12px 0;font-size:11px;color:var(--muted);border-top:1px solid var(--border)">
-      FoodDelivery API · Express + MySQL2 · Port 3000 · Quezon City, PH
+      FoodDelivery API · Express + MySQL2 · Railway Cloud · Quezon City, PH
     </div>
   </div>
 
-  <!-- ── PRODUCTS PAGE ── -->
+  <!-- PRODUCTS PAGE -->
   <div class="page" id="page-products">
     <div class="page-header">
       <div>
@@ -501,9 +478,7 @@
       <div style="overflow-x:auto">
         <table class="data-table">
           <thead>
-            <tr>
-              <th>ID</th><th>Name</th><th>Category</th><th>Price</th><th>Stock</th><th>Available</th><th>Action</th>
-            </tr>
+            <tr><th>ID</th><th>Name</th><th>Category</th><th>Price</th><th>Stock</th><th>Available</th><th>Action</th></tr>
           </thead>
           <tbody id="products-tbody2">
             <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px">I-click ang I-refresh para mag-load...</td></tr>
@@ -513,7 +488,7 @@
     </div>
   </div>
 
-  <!-- ── CART PAGE ── -->
+  <!-- CART PAGE -->
   <div class="page" id="page-cart">
     <div class="page-header">
       <div>
@@ -550,11 +525,9 @@
 </main>
 
 <script>
-  // ── Clock ──────────────────────────────────────────────────
   function clock() { document.getElementById('clock').textContent = new Date().toLocaleTimeString('en-PH',{hour12:false}); }
   clock(); setInterval(clock, 1000);
 
-  // ── Navigation ─────────────────────────────────────────────
   document.querySelectorAll('.nav-item[data-page]').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -568,7 +541,6 @@
 
   const catColor = { Viand:'viand', Soup:'soup', Noodles:'noodles', Dessert:'dessert', Rice:'rice', Drinks:'drinks' };
 
-  // ── Toast ──────────────────────────────────────────────────
   let toastTimer;
   function showToast(icon, msg, color='var(--text)') {
     const t = document.getElementById('toast');
@@ -578,14 +550,12 @@
     toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
   }
 
-  // ── Cart badge updater ─────────────────────────────────────
   function updateCartBadge(count) {
     const b = document.getElementById('cart-count-badge');
     b.textContent = count;
     b.style.display = count > 0 ? 'inline-block' : 'none';
   }
 
-  // ── Add to Cart (POST /cart) ───────────────────────────────
   async function addToCart(btn, product) {
     btn.disabled = true;
     btn.textContent = '⏳';
@@ -609,11 +579,7 @@
       showToast('🛒', `${product.name} naidagdag sa cart!`, 'var(--green)');
       addActivity('green', `POST /cart → ${product.name} (qty: ${data.cartItem?.quantity})`);
       await loadCart();
-      setTimeout(() => {
-        btn.disabled = false;
-        btn.classList.remove('added');
-        btn.innerHTML = '+ Idagdag';
-      }, 1800);
+      setTimeout(() => { btn.disabled = false; btn.classList.remove('added'); btn.innerHTML = '+ Idagdag'; }, 1800);
     } catch(e) {
       btn.disabled = false;
       btn.textContent = '✗ Error';
@@ -622,7 +588,6 @@
     }
   }
 
-  // ── Products (Dashboard) ───────────────────────────────────
   async function loadProducts() {
     try {
       const products = await fetch('/products').then(r => r.json());
@@ -646,7 +611,6 @@
     }
   }
 
-  // ── Products Page (with Add to Cart) ──────────────────────
   async function loadProductsPage() {
     document.getElementById('products-tbody2').innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px">Naglo-load...</td></tr>';
     try {
@@ -672,12 +636,11 @@
     }
   }
 
-  // ── Cart ───────────────────────────────────────────────────
   async function loadCart() {
     try {
       const data = await fetch('/cart').then(r => r.json());
-      document.getElementById('stat-cart').textContent       = data.count;
-      document.getElementById('stat-cart-total').textContent = '₱' + data.total.toFixed(2) + ' kabuuan';
+      document.getElementById('stat-cart').textContent        = data.count;
+      document.getElementById('stat-cart-total').textContent  = '₱' + data.total.toFixed(2) + ' kabuuan';
       document.getElementById('table-cart-count').textContent = data.count + ' rows';
       updateCartBadge(data.count);
     } catch(e) {
@@ -719,7 +682,6 @@
     } catch(e) { alert('Nabigo ang pag-clear.'); }
   }
 
-  // ── Activity ───────────────────────────────────────────────
   function addActivity(color, msg) {
     const feed = document.getElementById('activity-feed');
     const cls = {green:'ac-green',blue:'ac-blue',amber:'ac-amber',red:'ac-red'}[color]||'ac-green';
@@ -733,11 +695,9 @@
 
   function refreshData() { loadProducts(); loadCart(); addActivity('amber', 'Manual refresh triggered'); }
 
-  // ── Init ───────────────────────────────────────────────────
   loadProducts();
   loadCart();
 
-  // ── Fix All Images ─────────────────────────────────────
   async function fixAllImages() {
     const btn = document.getElementById('fix-img-btn');
     btn.textContent = '⏳ Nag-fi-fix...';

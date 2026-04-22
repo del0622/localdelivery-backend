@@ -21,11 +21,14 @@ const UPLOADS_DIR = path.join(__dirname, 'public', 'img-cache');
 if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 
 // ── Database connection pool (XAMPP defaults) ──────────────────────────────
+
+// Ng ito:
 const pool = mysql.createPool({
-  host:     'localhost',
-  user:     'root',
-  password: '',
-  database: 'localdelivery_db',
+  host:     process.env.DB_HOST,
+  user:     process.env.DB_USER,
+  password: process.env.DB_PASS,
+  database: process.env.DB_NAME,
+  port:     parseInt(process.env.DB_PORT) || 3306,
   waitForConnections: true,
   connectionLimit: 10,
 });

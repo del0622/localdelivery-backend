@@ -108,6 +108,28 @@ async function initDB() {
       )
     `);
 
+    // ── Users table
+    await conn.execute(`
+      CREATE TABLE IF NOT EXISTS users (
+        id         INT AUTO_INCREMENT PRIMARY KEY,
+        name       VARCHAR(100)  NOT NULL,
+        email      VARCHAR(150)  NOT NULL UNIQUE,
+        password   VARCHAR(255)  NOT NULL,
+        phone      VARCHAR(30),
+        role       ENUM('admin','user') NOT NULL DEFAULT 'user',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    // Seed default admin
+    const [admins] = await conn.execute("SELECT id FROM users WHERE email = 'admin@foodapp.com'");
+    if (admins.length === 0) {
+      await conn.execute(
+        "INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)",
+        ['Admin User', 'admin@foodapp.com', 'admin123', 'admin']
+      );
+      console.log('✅  Default admin seeded.');
+    }
+
     try { await conn.execute(`ALTER TABLE products MODIFY COLUMN image VARCHAR(1000)`); } catch (e) {}
     try { await conn.execute(`ALTER TABLE cart MODIFY COLUMN image VARCHAR(1000)`); } catch (e) {}
 
@@ -303,6 +325,72 @@ app.post('/admin/reseed-images', async (req, res) => {
     }
     res.json({ message: `Done. ${updated} of ${rows.length} product images cached locally.`, results });
   } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+
+// ── POST /auth/register ────────────────────────────────────────────────────
+app.post('/auth/register', async (req, res) => {
+  const { name, email, password } = req.body;
+  if (!name?.trim() || !email?.trim() || !password)
+    return res.status(400).json({ message: 'Please fill in all fields.' });
+  if (password.length < 6)
+    return res.status(400).json({ message: 'Password must be at least 6 characters.' });
+  try {
+    const [existing] = await pool.execute('SELECT id FROM users WHERE email = ?', [email.toLowerCase()]);
+    if (existing.length > 0)
+      return res.status(409).json({ message: 'An account with this email already exists.' });
+    const [result] = await pool.execute(
+      'INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)',
+      [name.trim(), email.toLowerCase(), password, 'user']
+    );
+    const [rows] = await pool.execute('SELECT id, name, email, phone, role FROM users WHERE id = ?', [result.insertId]);
+    const u = rows[0];
+    res.status(201).json({ message: 'Account created.', user: { id: String(u.id), name: u.name, email: u.email, phone: u.phone||'', role: u.role } });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// ── POST /auth/login ───────────────────────────────────────────────────────
+app.post('/auth/login', async (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password)
+    return res.status(400).json({ message: 'Email and password are required.' });
+  try {
+    const [rows] = await pool.execute(
+      'SELECT id, name, email, phone, role, password FROM users WHERE email = ?',
+      [email.toLowerCase()]
+    );
+    if (rows.length === 0 || rows[0].password !== password)
+      return res.status(401).json({ message: 'Invalid email or password.' });
+    const u = rows[0];
+    res.json({ message: 'Login successful.', user: { id: String(u.id), name: u.name, email: u.email, phone: u.phone||'', role: u.role } });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// ── PATCH /auth/users/:id — Update profile ─────────────────────────────────
+app.patch('/auth/users/:id', async (req, res) => {
+  const { id } = req.params;
+  const { name, email, phone } = req.body;
+  const fields = [], values = [];
+  if (name)              { fields.push('name = ?');  values.push(name.trim()); }
+  if (email)             { fields.push('email = ?'); values.push(email.toLowerCase()); }
+  if (phone !== undefined) { fields.push('phone = ?'); values.push(phone||null); }
+  if (!fields.length) return res.status(400).json({ message: 'Walang binago.' });
+  values.push(id);
+  try {
+    await pool.execute('UPDATE users SET ' + fields.join(', ') + ' WHERE id = ?', values);
+    const [rows] = await pool.execute('SELECT id, name, email, phone, role FROM users WHERE id = ?', [id]);
+    if (!rows.length) return res.status(404).json({ message: 'User not found.' });
+    const u = rows[0];
+    res.json({ user: { id: String(u.id), name: u.name, email: u.email, phone: u.phone||'', role: u.role } });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// ── GET /auth/users — Admin: list all users ────────────────────────────────
+app.get('/auth/users', async (req, res) => {
+  try {
+    const [rows] = await pool.execute('SELECT id, name, email, phone, role, created_at FROM users ORDER BY created_at DESC');
+    res.json(rows.map(u => ({ id: String(u.id), name: u.name, email: u.email, phone: u.phone||'', role: u.role, createdAt: u.created_at })));
+  } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
 // ── Start ──────────────────────────────────────────────────────────────────

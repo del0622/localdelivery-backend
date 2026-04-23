@@ -133,6 +133,56 @@ async function initDB() {
     try { await conn.execute(`ALTER TABLE products MODIFY COLUMN image VARCHAR(1000)`); } catch (e) {}
     try { await conn.execute(`ALTER TABLE cart MODIFY COLUMN image VARCHAR(1000)`); } catch (e) {}
 
+
+    // ── Orders table
+    await conn.execute(`
+      CREATE TABLE IF NOT EXISTS orders (
+        id               VARCHAR(50)   PRIMARY KEY,
+        user_id          VARCHAR(50)   NOT NULL,
+        restaurant_id    VARCHAR(50),
+        restaurant_name  VARCHAR(100),
+        items            JSON          NOT NULL,
+        total            DECIMAL(10,2) NOT NULL,
+        delivery_fee     DECIMAL(10,2) DEFAULT 0,
+        status           ENUM('pending','confirmed','preparing','on-the-way','delivered','cancelled') DEFAULT 'pending',
+        delivery_address TEXT,
+        customer_name    VARCHAR(100),
+        customer_email   VARCHAR(150),
+        customer_phone   VARCHAR(30),
+        payment_method   VARCHAR(20)   DEFAULT 'cod',
+        created_at       TIMESTAMP     DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // ── Delivery services table
+    await conn.execute(`
+      CREATE TABLE IF NOT EXISTS delivery_services (
+        id             INT AUTO_INCREMENT PRIMARY KEY,
+        name           VARCHAR(100)  NOT NULL,
+        area           VARCHAR(150)  NOT NULL,
+        fee            DECIMAL(10,2) DEFAULT 49,
+        estimated_time VARCHAR(50)   DEFAULT '30-45 mins',
+        is_available   TINYINT(1)   DEFAULT 1,
+        rider          VARCHAR(100)  DEFAULT 'Unassigned'
+      )
+    `);
+    // Seed default delivery services
+    const [dcount] = await conn.execute('SELECT COUNT(*) AS cnt FROM delivery_services');
+    if (dcount[0].cnt === 0) {
+      await conn.execute("INSERT INTO delivery_services (name,area,fee,estimated_time,is_available,rider) VALUES (?,?,?,?,?,?)", ['Express Delivery','Vigan City',49,'20-30 mins',1,'Juan Dela Cruz']);
+      await conn.execute("INSERT INTO delivery_services (name,area,fee,estimated_time,is_available,rider) VALUES (?,?,?,?,?,?)", ['Standard Delivery','Bantay, Ilocos Sur',35,'40-60 mins',1,'Pedro Santos']);
+      await conn.execute("INSERT INTO delivery_services (name,area,fee,estimated_time,is_available,rider) VALUES (?,?,?,?,?,?)", ['Bulk Delivery','Caoayan, Ilocos Sur',25,'60-90 mins',0,'Unassigned']);
+    }
+
+    // ── Payment methods table
+    await conn.execute(`
+      CREATE TABLE IF NOT EXISTS payment_methods (
+        id    INT AUTO_INCREMENT PRIMARY KEY,
+        gcash TINYINT(1) DEFAULT 1,
+        cod   TINYINT(1) DEFAULT 1
+      )
+    `);
+
     const [rows] = await conn.execute('SELECT COUNT(*) AS cnt FROM products');
     if (rows[0].cnt === 0) {
       const seedData = [
@@ -392,6 +442,145 @@ app.get('/auth/users', async (req, res) => {
     res.json(rows.map(u => ({ id: String(u.id), name: u.name, email: u.email, phone: u.phone||'', role: u.role, createdAt: u.created_at })));
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
+
+
+// ── POST /orders ────────────────────────────────────────────────────────────
+app.post('/orders', async (req, res) => {
+  const { userId, restaurantId, restaurantName, items, total, deliveryFee,
+          deliveryAddress, customerName, customerEmail, customerPhone, paymentMethod } = req.body;
+  if (!userId || !items || !total) return res.status(400).json({ message: 'Missing required fields.' });
+  try {
+    const orderId = 'ORD-' + Date.now() + '-' + Math.random().toString(36).substr(2,9).toUpperCase();
+    await pool.execute(
+      `INSERT INTO orders (id, user_id, restaurant_id, restaurant_name, items, total, delivery_fee,
+        status, delivery_address, customer_name, customer_email, customer_phone, payment_method)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      [orderId, userId, restaurantId||'local-store', restaurantName||'FoodDelivery',
+       JSON.stringify(items), total, deliveryFee||0, 'pending',
+       deliveryAddress||'', customerName||'', customerEmail||'', customerPhone||'', paymentMethod||'cod']
+    );
+    const [rows] = await pool.execute('SELECT * FROM orders WHERE id = ?', [orderId]);
+    const o = rows[0];
+    res.status(201).json({ message: 'Order placed.', order: mapOrder(o) });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// ── GET /orders ─────────────────────────────────────────────────────────────
+app.get('/orders', async (req, res) => {
+  try {
+    const { userId } = req.query;
+    let rows;
+    if (userId) {
+      [rows] = await pool.execute('SELECT * FROM orders WHERE user_id = ? ORDER BY created_at DESC', [userId]);
+    } else {
+      [rows] = await pool.execute('SELECT * FROM orders ORDER BY created_at DESC');
+    }
+    res.json(rows.map(mapOrder));
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// ── PATCH /orders/:id/status ─────────────────────────────────────────────────
+app.patch('/orders/:id/status', async (req, res) => {
+  const { status } = req.body;
+  const validStatuses = ['pending','confirmed','preparing','on-the-way','delivered','cancelled'];
+  if (!validStatuses.includes(status)) return res.status(400).json({ message: 'Invalid status.' });
+  try {
+    await pool.execute('UPDATE orders SET status = ? WHERE id = ?', [status, req.params.id]);
+    const [rows] = await pool.execute('SELECT * FROM orders WHERE id = ?', [req.params.id]);
+    if (!rows.length) return res.status(404).json({ message: 'Order not found.' });
+    res.json({ message: 'Status updated.', order: mapOrder(rows[0]) });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// ── GET /delivery-services ───────────────────────────────────────────────────
+app.get('/delivery-services', async (req, res) => {
+  try {
+    const [rows] = await pool.execute('SELECT * FROM delivery_services ORDER BY name');
+    res.json(rows.map(d => ({
+      id: String(d.id), name: d.name, area: d.area, fee: parseFloat(d.fee),
+      estimatedTime: d.estimated_time, isAvailable: d.is_available === 1, rider: d.rider
+    })));
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// ── POST /delivery-services ──────────────────────────────────────────────────
+app.post('/delivery-services', async (req, res) => {
+  const { name, area, fee, estimatedTime, isAvailable, rider } = req.body;
+  if (!name?.trim() || !area?.trim()) return res.status(400).json({ message: 'Name and area are required.' });
+  try {
+    const [result] = await pool.execute(
+      'INSERT INTO delivery_services (name, area, fee, estimated_time, is_available, rider) VALUES (?,?,?,?,?,?)',
+      [name.trim(), area.trim(), fee||49, estimatedTime||'30-45 mins', isAvailable!==false?1:0, rider||'Unassigned']
+    );
+    const [rows] = await pool.execute('SELECT * FROM delivery_services WHERE id = ?', [result.insertId]);
+    const d = rows[0];
+    res.status(201).json({ id: String(d.id), name: d.name, area: d.area, fee: parseFloat(d.fee), estimatedTime: d.estimated_time, isAvailable: d.is_available===1, rider: d.rider });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// ── PATCH /delivery-services/:id ─────────────────────────────────────────────
+app.patch('/delivery-services/:id', async (req, res) => {
+  const { name, area, fee, estimatedTime, isAvailable, rider } = req.body;
+  const fields = [], values = [];
+  if (name !== undefined)          { fields.push('name = ?');           values.push(name); }
+  if (area !== undefined)          { fields.push('area = ?');           values.push(area); }
+  if (fee !== undefined)           { fields.push('fee = ?');            values.push(fee); }
+  if (estimatedTime !== undefined) { fields.push('estimated_time = ?'); values.push(estimatedTime); }
+  if (isAvailable !== undefined)   { fields.push('is_available = ?');   values.push(isAvailable?1:0); }
+  if (rider !== undefined)         { fields.push('rider = ?');          values.push(rider); }
+  if (!fields.length) return res.status(400).json({ message: 'Walang binago.' });
+  values.push(req.params.id);
+  try {
+    await pool.execute('UPDATE delivery_services SET ' + fields.join(', ') + ' WHERE id = ?', values);
+    const [rows] = await pool.execute('SELECT * FROM delivery_services WHERE id = ?', [req.params.id]);
+    const d = rows[0];
+    res.json({ id: String(d.id), name: d.name, area: d.area, fee: parseFloat(d.fee), estimatedTime: d.estimated_time, isAvailable: d.is_available===1, rider: d.rider });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// ── DELETE /delivery-services/:id ────────────────────────────────────────────
+app.delete('/delivery-services/:id', async (req, res) => {
+  try {
+    await pool.execute('DELETE FROM delivery_services WHERE id = ?', [req.params.id]);
+    res.json({ message: 'Delivery service removed.' });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// ── GET /payment-methods ─────────────────────────────────────────────────────
+app.get('/payment-methods', async (req, res) => {
+  try {
+    const [rows] = await pool.execute('SELECT * FROM payment_methods LIMIT 1');
+    if (!rows.length) return res.json({ gcash: true, cod: true });
+    res.json({ gcash: rows[0].gcash===1, cod: rows[0].cod===1 });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// ── PATCH /payment-methods ───────────────────────────────────────────────────
+app.patch('/payment-methods', async (req, res) => {
+  const { gcash, cod } = req.body;
+  try {
+    const [rows] = await pool.execute('SELECT id FROM payment_methods LIMIT 1');
+    if (rows.length) {
+      await pool.execute('UPDATE payment_methods SET gcash = ?, cod = ? WHERE id = ?', [gcash?1:0, cod?1:0, rows[0].id]);
+    } else {
+      await pool.execute('INSERT INTO payment_methods (gcash, cod) VALUES (?,?)', [gcash?1:0, cod?1:0]);
+    }
+    res.json({ gcash: !!gcash, cod: !!cod });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+function mapOrder(o) {
+  return {
+    id: o.id, userId: o.user_id, restaurantId: o.restaurant_id,
+    restaurantName: o.restaurant_name,
+    items: typeof o.items === 'string' ? JSON.parse(o.items) : o.items,
+    total: parseFloat(o.total), deliveryFee: parseFloat(o.delivery_fee||0),
+    status: o.status, deliveryAddress: o.delivery_address,
+    customerName: o.customer_name, customerEmail: o.customer_email,
+    customerPhone: o.customer_phone, paymentMethod: o.payment_method,
+    createdAt: o.created_at
+  };
+}
 
 // ── Start ──────────────────────────────────────────────────────────────────
 initDB().then(() => {
